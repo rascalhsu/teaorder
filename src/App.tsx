@@ -29,6 +29,13 @@ import {
 const SUGAR_OPTIONS = ["無糖", "微糖", "半糖", "少糖", "全糖"];
 const ICE_OPTIONS = ["去冰", "微冰", "少冰", "正常冰", "熱"];
 
+const DRINK_MENU = [
+  { category: "經典原萃", items: ["熟成紅茶", "翡翠綠茶", "四季春青茶", "極品烏龍"] },
+  { category: "香醇奶茶", items: ["珍珠奶茶", "經典奶茶", "燕麥奶茶", "烏龍奶茶"] },
+  { category: "鮮奶系列", items: ["紅茶拿鐵", "抹茶拿鐵", "黑糖珍珠鮮奶"] },
+  { category: "果香特調", items: ["鮮榨柳橙綠", "葡萄柚綠", "百香雙響炮", "檸檬金桔"] },
+];
+
 interface Order {
   id: string;
   customerName: string;
@@ -180,14 +187,50 @@ export default function App() {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-600 mb-1">飲料品項</label>
-                      <input 
-                        type="text"
-                        required
-                        value={formData.drinkName}
-                        onChange={e => setFormData({...formData, drinkName: e.target.value})}
-                        placeholder="例如: 手打鴨屎香檸檬茶"
-                        className="w-full p-3 rounded-xl border-2 border-gray-100 focus:border-orange-400 outline-none transition-all"
-                      />
+                      <div className="relative">
+                        <input 
+                          type="text"
+                          required
+                          readOnly
+                          value={formData.drinkName}
+                          onClick={() => setFormData(prev => ({ ...prev, _showMenu: !((prev as any)._showMenu) }))}
+                          placeholder="點擊選擇飲料"
+                          className="w-full p-3 rounded-xl border-2 border-gray-100 focus:border-orange-400 outline-none transition-all cursor-pointer bg-white"
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${(formData as any)._showMenu ? 'rotate-90' : ''}`} />
+                        </div>
+
+                        {/* Drink Menu Dropdown */}
+                        <AnimatePresence>
+                          {(formData as any)._showMenu && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 10 }}
+                              className="absolute z-20 left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-h-[320px] overflow-y-auto p-2"
+                            >
+                              {DRINK_MENU.map((cat) => (
+                                <div key={cat.category} className="mb-4 last:mb-0">
+                                  <h4 className="px-3 py-1 text-[10px] font-black text-[#059669]/40 uppercase tracking-widest">{cat.category}</h4>
+                                  <div className="grid grid-cols-2 gap-1 mt-1">
+                                    {cat.items.map(item => (
+                                      <button
+                                        key={item}
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, drinkName: item, _showMenu: false } as any)}
+                                        className="text-left px-3 py-2 text-xs font-medium text-gray-600 hover:bg-emerald-50 hover:text-[#059669] rounded-lg transition-colors"
+                                      >
+                                        {item}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
