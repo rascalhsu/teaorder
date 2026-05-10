@@ -7,16 +7,12 @@ import {
   ChevronRight, 
   Info, 
   ShieldCheck, 
-  LogOut, 
-  LogIn,
   Clock,
   User,
   Coffee as TeaIcon
 } from 'lucide-react';
 import { 
   db, 
-  auth, 
-  googleProvider, 
   collection, 
   addDoc, 
   deleteDoc, 
@@ -25,8 +21,6 @@ import {
   query, 
   orderBy, 
   serverTimestamp, 
-  signInWithPopup, 
-  signOut,
   handleFirestoreError,
   OperationType
 } from './lib/firebase';
@@ -48,9 +42,8 @@ interface Order {
 export default function App() {
   const [view, setView] = useState<'front' | 'back'>('front');
   const [orders, setOrders] = useState<Order[]>([]);
-  const [user, setUser] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -60,21 +53,6 @@ export default function App() {
     ice: '去冰',
     note: ''
   });
-
-  // Auth Listener
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
-      if (user) {
-        // Simple admin check for demo: rascalhsu@hlvs.ylc.edu.tw
-        setIsAdmin(user.email === 'rascalhsu@hlvs.ylc.edu.tw');
-      } else {
-        setIsAdmin(false);
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   // Real-time Orders Listener (as requested: "每秒均更新資料" and "自動載入資料庫資料")
   useEffect(() => {
@@ -91,22 +69,6 @@ export default function App() {
 
     return () => unsubscribe();
   }, []);
-
-  const handleLogin = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error("Login failed", error);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Logout failed", error);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,33 +138,14 @@ export default function App() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2 bg-emerald-700 px-3 py-1 rounded-full text-[10px] font-medium">
+            <div className="flex items-center gap-2 bg-emerald-700 px-3 py-1 rounded-full text-[10px] font-medium">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-              Firebase 連線中
+              即時同步中
             </div>
             
-            {user ? (
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:block text-right">
-                  <p className="text-[10px] font-bold text-emerald-100 uppercase tracking-wider">{user.displayName}</p>
-                  <p className="text-[8px] text-emerald-300 uppercase tracking-widest">{isAdmin ? 'ADMIN' : 'USER'}</p>
-                </div>
-                <button 
-                  onClick={handleLogout}
-                  className="bg-emerald-800 hover:bg-emerald-900 p-2 rounded-lg transition-colors"
-                  title="登出"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <button 
-                onClick={handleLogin}
-                className="bg-yellow-400 hover:bg-yellow-500 text-emerald-900 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95"
-              >
-                管理員登入
-              </button>
-            )}
+            <div className="bg-emerald-800 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest text-emerald-100">
+              系統操作中
+            </div>
           </div>
         </div>
       </header>
@@ -353,11 +296,6 @@ export default function App() {
                   <span className="text-emerald-500 underline decoration-4 underline-offset-4">後台管理系統</span>
                 </h2>
                 <div className="flex items-center gap-4">
-                  {!isAdmin && user && (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 rounded-xl border border-rose-100 text-rose-700 text-[10px] font-black uppercase tracking-widest">
-                       ACCESS DENIED
-                    </div>
-                  )}
                   <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-8">
                     <div className="flex flex-col">
                       <span className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">總訂單</span>
@@ -374,30 +312,9 @@ export default function App() {
                 </div>
               </div>
 
-              {!isAdmin ? (
-                <div className="bg-white rounded-[32px] p-20 text-center border-2 border-dashed border-gray-200 shadow-xl">
-                  <div className="max-w-md mx-auto space-y-6">
-                    <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-rose-100">
-                      <ShieldCheck className="w-12 h-12 text-rose-500" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-800">權限不足</h3>
-                    <p className="text-sm text-gray-400 leading-relaxed font-medium">
-                      此區域僅限管理員 Rascal 進行操作。<br/>請確認登入帳號屬性。
-                    </p>
-                    {!user && (
-                      <button 
-                        onClick={handleLogin}
-                        className="px-8 py-3 bg-[#059669] text-white rounded-xl font-bold hover:scale-105 active:scale-95 transition-all text-sm uppercase tracking-widest shadow-lg shadow-emerald-100"
-                      >
-                        管理員授權登入
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Summary row */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-6">
+                {/* Summary row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                      <div className="bg-[#059669] text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
                         <TeaIcon className="absolute -right-4 -bottom-4 w-32 h-32 opacity-10 rotate-12" />
                         <h4 className="text-[10px] font-bold opacity-60 uppercase tracking-widest mb-1">最受歡迎茶飲</h4>
@@ -479,7 +396,6 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
