@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "A tea order from a customer",
+      "type": "object",
+      "properties": {
+        "customerName": {
+          "type": "string",
+          "description": "Name of the person ordering"
+        },
+        "drinkName": {
+          "type": "string",
+          "description": "Name of the drink"
+        },
+        "sugar": {
+          "type": "string",
+          "enum": ["無糖", "微糖", "半糖", "少糖", "全糖"]
+        },
+        "ice": {
+          "type": "string",
+          "enum": ["去冰", "微冰", "少冰", "正常冰", "熱"]
+        },
+        "note": {
+          "type": "string",
+          "description": "Additional notes"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["customerName", "drinkName", "sugar", "ice"]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of tea orders"
+    }
+  }
+}
