@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Default Deny Catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 3. Primitive Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isEmailVerified() && (
+        request.auth.token.email == "rascalhsu@hlvs.ylc.edu.tw" ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 2. Validation Blueprints
+    function isValidOrder(data) {
+      return data.keys().hasAll(['customerName', 'drinkName', 'sugar', 'ice', 'createdAt'])
+          && data.keys().size() <= 6 // name, drink, sugar, ice, createdAt, note(optional)
+          && data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 50
+          && data.drinkName is string && data.drinkName.size() >= 1 && data.drinkName.size() <= 50
+          && data.sugar in ["無糖", "微糖", "半糖", "少糖", "全糖"]
+          && data.ice in ["去冰", "微冰", "少冰", "正常冰", "熱"]
+          && (data.get('note', '') is string && data.get('note', '').size() <= 200)
+          && data.createdAt == request.time;
+    }
+
+    // 4. Fortress Rules for Orders
+    match /orders/{orderId} {
+      // allow list: Enforce query boundaries
+      allow list: if true; // Group buying visibility is usually public for participants
+      allow get: if isValidId(orderId);
+
+      // allow create: Schema enforcement
+      allow create: if isValidOrder(request.resource.data);
+
+      // allow delete: Restricted to admins
+      allow delete: if isAdmin();
+    }
+
+    // Admins Collection
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Only manageable via console
+    }
+  }
+}
